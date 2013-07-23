@@ -1,54 +1,16 @@
 # -*- encoding: utf-8 -*-
 
-import cStringIO
-import logging
 import socket
 import sys
-import traceback
 
 import argparse
 
 from . import controller
 from . import engine
+from . import log
 from .plugins import detect
 from . import report
 from .backend import mock, network
-
-loglevels = dict(
-		DEBUG=logging.DEBUG,
-		INFO=logging.INFO,
-		WARNING=logging.WARNING,
-		ERROR=logging.ERROR,
-		CRITICAL=logging.CRITICAL)
-
-class ExceptionFormatter(logging.Formatter):
-	def formatException(self, exc_info):
-		sio = cStringIO.StringIO()
-		type_, exception, trace = exc_info
-		while True:
-			if trace is not None:
-				traceback.print_exception(type_, exception, trace, None, sio)
-				if hasattr(exception, "__traceback__"):
-					sio.write("original traceback\n")
-					traceback.print_exception(type_, exception, exception.__traceback__, None, sio)
-			elif hasattr(exception, "__traceback__"):
-				traceback.print_exception(type_, exception, exception.__traceback__, None, sio)
-			else:
-				sio.write("%s\n" % exception)
-			if not hasattr(exception, "__cause__"):
-				break
-			sio.write("caused by\n")
-			exception = exception.__cause__
-			type_ = type(exception)
-			trace = None
-		return sio.getvalue().rstrip("\n")
-
-def setup_logging(levelname):
-	rootlogger = logging.getLogger()
-	rootlogger.setLevel(loglevels[levelname])
-	handler = logging.StreamHandler(sys.stderr)
-	handler.setFormatter(ExceptionFormatter(logging.BASIC_FORMAT))
-	rootlogger.addHandler(handler)
 
 class CustomParser(argparse.ArgumentParser):
 	def exit(self, status=0, message=None):
@@ -67,11 +29,11 @@ def main():
 	group.add_argument("--mock", metavar="FILE", help="check recorded snmpwalk")
 	group.add_argument("--agent", metavar="IP", help="check given SNMP agent")
 	parser.add_argument("--community", default="public", help="SNMP community to use when --agent is given")
-	parser.add_argument("--level", choices=loglevels.keys(), default="DEBUG", help="specify log level")
 	parser.add_argument("--bulk", nargs='?', type=int, default=-1, const=0, metavar="N", help="use the bulk engine. If a parameter is given it specifies how many additional getnext should be issued in bulk mode.")
 	parser.add_argument("--cache", action="store_true", help="Cache SNMP results. If two plugins request the same object, a cached version is returned.")
+	log.add_log_options(parser)
 	args = parser.parse_args()
-	setup_logging(args.level)
+	log.setup_logging(args)
 	collector = report.Collector()
 	if args.mock:
 		backend = mock.MockBackend(args.mock)
