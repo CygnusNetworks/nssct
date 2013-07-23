@@ -1,0 +1,12 @@
+#!/usr/bin/make -f
+%:
+	dh $@ --with python2 --buildsystem python_distutils
+
+ifeq (,$(filter nocheck,$(DEB_BUILD_OPTIONS)))
+override_dh_auto_test:
+	python ./setup.py test
+endif
+
+override_dh_install:
+	dh_install
+	install -D -m644 nagios_command.cfg $(CURDIR)/debian/python-nssct/etc/nagios-plugins/config/nssct.cfg
