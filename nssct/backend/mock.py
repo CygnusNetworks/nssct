@@ -4,6 +4,7 @@ import binascii
 import re
 
 import pysnmp.proto.rfc1902
+import pysnmp.proto.rfc1905
 
 from .. import backend
 from .. import cache
@@ -118,7 +119,10 @@ class MockBackend(backend.BackendBase):
 		self.cache = cache_snmpwalk(snmpwalklog)
 
 	def get(self, oid):
-		return self.cache.get(oid)
+		try:
+			return self.cache.get(oid)
+		except cache.NotCached:
+			return pysnmp.proto.rfc1905.noSuchObject
 
 	def getnext(self, oid):
 		return self.cache.getnext(oid)
