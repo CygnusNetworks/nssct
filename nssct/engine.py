@@ -2,6 +2,8 @@
 
 import logging
 
+import pysnmp.proto.rfc1905
+
 from . import backend
 from . import cache
 from . import future
@@ -200,6 +202,10 @@ class BulkEngine(AbstractEngine):
 			qoid, fut = self.pendingget.pop(0)
 			noid, value = result.pop(0)
 			logger.debug("bulk processing %r queried %r result %r", noid, qoid, value)
+			if qoid < noid:
+				logger.debug("bulk query %r smaller than result %r, masking to NoSuchObject", qoid, noid)
+				qoid = noid
+				value = pysnmp.proto.rfc1905.noSuchObject
 			if qoid != noid:
 				completions.append((fut.set_exception, backend.BackendError("bad bulk result queried %r != %r returned" % (qoid, noid))))
 			else:
