@@ -71,6 +71,9 @@ class CachingEngine(AbstractEngine):
 		if fut.exception():
 			return  # we cannot cache exceptions
 		value = fut.result()
+		if isinstance(value, pysnmp.proto.rfc1905.NoSuchObject):
+			logger.debug("not storing NoSuchObject for %r", oid)
+			return
 		logger.debug("storing %r set %r", oid, value)
 		self.cache.set(oid, value)
 		try:
