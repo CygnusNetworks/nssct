@@ -51,6 +51,19 @@ def brocade_unit_temperature_plugin(controller, collector):
 		crit = brcd_temp((yield controller.engine.get(snChasUnitShutdownTemperature + (unit,))))
 		collector.add_metric(report.PerfMetric("chasunit%dtemp" % unit, act, warn=warn, crit=crit, minval=-110, maxval=250))
 
+
+snAgentTempValue = brcdIp + (1, 1, 2, 13, 1, 1, 4)
+all_oids.add(snAgentTempValue)
+
+@future.coroutine
+def brocade_agent_temperature_plugin(controller, collector):
+	for oid, value in (yield plugins.snmpwalk(controller, snAgentTempValue)):
+		ident = oid[len(snAgentTempValue):]
+		ident = "_".join(map(str, ident))
+		act = brcd_temp(value)
+		collector.add_metric(report.PerfMetric("agent_%s_temp" % ident, act, minval=-110, maxval=250))
+
+
 snChasFanOperStatus = brcdIp + (1, 1, 1, 3, 1, 1, 3)
 all_oids.add(snChasFanOperStatus)
 
@@ -113,6 +126,7 @@ snBigIronRXFamily = brcdIp + (1, 3, 40)
 @future.coroutine
 def brocade_detect(controller, collector):
 	controller.start_plugin(collector, brocade_unit_temperature_plugin)
+	controller.start_plugin(collector, brocade_agent_temperature_plugin)
 	controller.start_plugin(collector, brocade_fan_table_plugin)
 	controller.start_plugin(collector, brocade_psu_table_plugin)
 	controller.start_plugin(collector, brocade_cpu_usage_plugin)
