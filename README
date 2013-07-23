@@ -1,0 +1,3 @@
+To create parseable snmp dumps use:
+
+    snmpwalk -Onx --hexOutputLength=1024 ...
