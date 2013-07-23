@@ -1,2 +1,3 @@
 include LICENSE
+include nagios_command.cfg
 include tests/*.py
