@@ -13,6 +13,19 @@ Using nssct
 The package will ship a `nssct` script. It can be used as a nagios plugin.
 Refer to `nssct --help` for information on how to invoke it.
 
+When using it in conjunction with Nagios a service configuration will likely
+look like following.
+
+    define service{
+        use                 generic-service
+        host_name           MONITORED_DEVICE
+        check_command       check_nssct!PUBLIC_COMMUNITY
+        service_description nssct
+        }
+
+If you are using pnp4nagios, use `generic-service-perfdata` instead of
+`generic-service`.
+
 Reporting issues
 ================
 
