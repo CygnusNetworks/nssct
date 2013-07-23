@@ -17,19 +17,39 @@ snChasWarningTemperature = brcdIp + (1, 1, 1, 1, 19, 0)
 snChasShutdownTemperature = brcdIp + (1, 1, 1, 1, 20, 0)
 all_oids.update((snChasActualTemperature, snChasWarningTemperature, snChasShutdownTemperature))
 
+def brcd_temp(value):
+	return plugins.as_decimal(value, "0.5")
+
 @future.coroutine
 def brocade_temperature_plugin(controller, collector):
 	act = controller.engine.get(snChasActualTemperature)
 	warn = controller.engine.get(snChasWarningTemperature)
-	act = plugins.as_decimal((yield act), "0.5")
-	warn = plugins.as_decimal((yield warn), "0.5")
+	act = brcd_temp((yield act))
+	warn = brcd_temp((yield warn))
 	if act < warn:
 		collector.add_metric(report.PerfMetric("chastemp", act, warn=warn, minval=-110, maxval=250))
 		future.return_()
 	logger.debug("temperature is %s, checking shutdown point", act)
-	crit = plugins.as_decimal((yield controller.engine.get(snChasShutdownTemperature)), "0.5")
+	crit = brcd_temp((yield controller.engine.get(snChasShutdownTemperature)))
 	collector.add_metric(report.PerfMetric("chastemp", act, warn=warn, crit=crit, minval=-110, maxval=250))
 
+snChasUnitActualTemp = brcdIp + (1, 1, 1, 4, 1, 1, 4)
+snChasUnitWarningTem = brcdIp + (1, 1, 1, 4, 1, 1, 5)
+snChasUnitShutdownTemperature = brcdIp + (1, 1, 1, 4, 1, 1, 5)
+all_oids.update((snChasUnitActualTemp, snChasUnitWarningTem, snChasUnitShutdownTemperature))
+
+@future.coroutine
+def brocade_unit_temperature_plugin(controller, collector):
+	for oid, value in (yield plugins.snmpwalk(controller, snChasUnitActualTemp)):
+		unit = oid[-1]
+		act = brcd_temp(value)
+		warn = brcd_temp((yield controller.engine.get(snChasUnitWarningTem + (unit,))))
+		if act < warn:
+			collector.add_metric(report.PerfMetric("chasunit%dtemp" % unit, act, warn=warn, minval=-110, maxval=250))
+			future.return_()
+		logger.debug("unit %d temperature is %s, checking shutdown point", unit, act)
+		crit = brcd_temp((yield controller.engine.get(snChasUnitShutdownTemperature + (unit,))))
+		collector.add_metric(report.PerfMetric("chasunit%dtemp" % unit, act, warn=warn, crit=crit, minval=-110, maxval=250))
 
 snChasFanOperStatus = brcdIp + (1, 1, 1, 3, 1, 1, 3)
 all_oids.add(snChasFanOperStatus)
@@ -92,6 +112,7 @@ snBigIronRXFamily = brcdIp + (1, 3, 40)
 
 @future.coroutine
 def brocade_detect(controller, collector):
+	controller.start_plugin(collector, brocade_unit_temperature_plugin)
 	controller.start_plugin(collector, brocade_fan_table_plugin)
 	controller.start_plugin(collector, brocade_psu_table_plugin)
 	controller.start_plugin(collector, brocade_cpu_usage_plugin)
