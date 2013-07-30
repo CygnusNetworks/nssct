@@ -46,6 +46,18 @@ class AbstractEngine(object):
 		raise NotImplementedError
 
 
+def check_mib_value(value):
+	if isinstance(value, pysnmp.proto.rfc1905.NoSuchObject):
+		raise NoSuchObjectError
+	if isinstance(value, pysnmp.proto.rfc1905.EndOfMibView):
+		raise EndOfMibError
+	return value
+
+def check_mib_next_pair(pair):
+	if isinstance(pair[1], pysnmp.proto.rfc1905.EndOfMibView):
+		raise EndOfMibError
+	return pair
+
 class SimpleEngine(AbstractEngine):
 	"""A synchronous engine turning every question into a direct call to the
 	backend."""
@@ -55,19 +67,17 @@ class SimpleEngine(AbstractEngine):
 
 	def get(self, oid):
 		logger.debug("%r: get %r", self.backend, oid)
-		value = self.backend.get(oid)
-		if isinstance(value, pysnmp.proto.rfc1905.NoSuchObject):
-			return future.failed_future(NoSuchObjectError())
-		if isinstance(value, pysnmp.proto.rfc1905.EndOfMibView):
-			return future.failed_future(EndOfMibError())
-		return future.complete_future(value)
+		fut = future.Future()
+		future.complete_with(fut, lambda oid=oid:
+				check_mib_value(self.backend.get(oid)))
+		return fut
 
 	def getnext(self, oid):
 		logger.debug("%r: getnext %r", self.backend, oid)
-		pair = self.backend.getnext(oid)
-		if isinstance(pair[1], pysnmp.proto.rfc1905.EndOfMibView):
-			return future.failed_future(EndOfMibError())
-		return future.complete_future(pair)
+		fut = future.Future()
+		future.complete_with(fut, lambda oid=oid:
+				check_mib_next_pair(self.backend.getnext(oid)))
+		return fut
 
 	def step(self):
 		return False
@@ -109,18 +119,12 @@ class CachingEngine(AbstractEngine):
 		except cache.NotCached:
 			logger.debug("get %r not in cache", oid)
 			futvalue = self.engine.get(oid)
-			futvalue.add_done_callback(lambda fut, oid=oid: self._cacheget(oid, fut))
+			futvalue.add_done_callback(functools.partial(self._cacheget, oid))
 			return futvalue
 		else:
-			if isinstance(value, pysnmp.proto.rfc1905.NoSuchObject):
-				logger.debug("get %r cached as nonexistent", oid)
-				return future.failed_future(NoSuchObjectError())
-			elif isinstance(value, pysnmp.proto.rfc1905.EndOfMibView):
-				logger.debug("get %r cached as EndOfMib", oid)
-				return future.failed_future(EndOfMibError())
-			else:
-				logger.debug("get %r cached as %r", oid, value)
-				return future.complete_future(value)
+			fut = future.Future()
+			future.complete_with(fut, functools.partial(check_mib_value, value))
+			return fut
 
 	def _cachenext(self, oid, futnext):
 		exc = futnext.exception()
@@ -150,15 +154,12 @@ class CachingEngine(AbstractEngine):
 			logger.debug("next %r not in cache", oid)
 			futnext = self.engine.getnext(oid)
 			self.pendingnext[oid] = futnext
-			futnext.add_done_callback(lambda fut, oid=oid: self._cachenext(oid, fut))
+			futnext.add_done_callback(functools.partial(self._cachenext, oid))
 			return futnext
 		else:
-			if isinstance(value, pysnmp.proto.rfc1905.EndOfMibView):
-				logger.debug("next %r in cache as EndOfMib", oid)
-				return future.failed_future(EndOfMibError())
-			else:
-				logger.debug("next %r in cache as %r value %r", oid, noid, value)
-				return future.complete_future((noid, value))
+			fut = future.Future()
+			future.complete_with(fut, functools.partial(check_mib_next_pair, (noid, value)))
+			return fut
 
 	def storenext(self, oid, noid, value):
 		logger.debug("storing %r next %r value %r", oid, noid, value)
@@ -214,24 +215,14 @@ class BulkEngine(AbstractEngine):
 			if len(self.pendingget) == 1:
 				oid, fut = self.pendingget.pop(0)
 				logger.debug("single get query for %r", oid)
-				@functools.partial(future.complete_with, fut)
-				def do_get():
-					value = self.backend.get(oid)
-					if isinstance(value, pysnmp.proto.rfc1905.NoSuchObject):
-						raise NoSuchObjectError
-					if isinstance(value, pysnmp.proto.rfc1905.EndOfMibView):
-						raise EndOfMibError
-					return value
+				future.complete_with(fut, lambda oid=oid:
+						check_mib_value(self.backend.get(oid)))
 				return bool(self.pendingget) or bool(self.pendingnext)
 		if maxrep <= 1 and len(self.pendingnext) == 1 and len(self.pendingget) == 0:
 			oid, fut = self.pendingnext.pop(0)
 			logger.debug("single next query for %r", oid)
-			@functools.partial(future.complete_with, fut)
-			def do_getnext():
-				pair = self.backend.getnext(oid)
-				if isinstance(pair[1], pysnmp.proto.rfc1905.EndOfMibView):
-					raise EndOfMibError
-				return pair
+			future.complete_with(fut, lambda oid=oid:
+					check_mib_next_pair(self.backend.getnext(oid)))
 			return bool(self.pendingget) or bool(self.pendingnext)
 
 		oids = [prev_oid(oid) for oid, _ in self.pendingget[:self.bulkmax]]
