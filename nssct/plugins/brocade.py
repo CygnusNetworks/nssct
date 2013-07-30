@@ -85,6 +85,24 @@ def brocade_fan_table_plugin(controller, collector):
 			collector.add_alert(report.Alert(report.CRITICAL, msg))
 
 
+snChasFan2OperStatus = brcdIp + (1, 1, 1, 3, 2, 1, 4)
+all_oids.add(snChasFan2OperStatus)
+
+@future.coroutine
+def brocade_stack_fan_table_plugin(controller, collector):
+	fut = plugins.snmpwalk(controller, snChasFan2OperStatus)
+	while (yield fut):
+		oid, value, fut = fut.result()
+		index = "_".join(map(str, oid[len(snChasFan2OperStatus):]))
+		value = int(value)
+		if value == 2:
+			alert = report.Alert(report.OK, "stack fan %s is ok" % index)
+		else:
+			msg = "stack fan %s is critical with status %d" % (index, value)
+			alert = report.Alert(report.CRITICAL, msg)
+		collector.add_alert(alert)
+
+
 snChasPwrSupplyDescription = brcdIp + (1, 1, 1, 2, 1, 1, 2)
 snChasPwrSupplyOperStatus = brcdIp + (1, 1, 1, 2, 1, 1, 3)
 all_oids.update((snChasPwrSupplyDescription, snChasPwrSupplyOperStatus))
@@ -147,6 +165,7 @@ def brocade_detect(controller, collector):
 	controller.start_plugin(collector, brocade_unit_temperature_plugin)
 	controller.start_plugin(collector, brocade_agent_temperature_plugin)
 	controller.start_plugin(collector, brocade_fan_table_plugin)
+	controller.start_plugin(collector, brocade_stack_fan_table_plugin)
 	controller.start_plugin(collector, brocade_psu_table_plugin)
 	controller.start_plugin(collector, brocade_cpu_usage_plugin)
 	controller.start_plugin(collector, brocade_mem_usage_plugin)
