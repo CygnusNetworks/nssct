@@ -27,7 +27,9 @@ all_oids.update((ciscoEnvMonFanStatusDescr, ciscoEnvMonFanState))
 
 @future.coroutine
 def cisco_fan_table_plugin(controller, collector):
-	for oid, value in (yield plugins.snmpwalk(controller, ciscoEnvMonFanState)):
+	fut = plugins.snmpwalk(controller, ciscoEnvMonFanState)
+	while (yield fut):
+		oid, value, fut = fut.result()
 		name = (yield controller.engine.get(ciscoEnvMonFanStatusDescr + (oid[-1],)))
 		state, reason = cisco_state(value)
 		collector.add_alert(report.Alert(state, "fan_%s is %s" % (name, reason)))
@@ -39,7 +41,9 @@ all_oids.update((ciscoEnvMonSupplyStatusDescr, ciscoEnvMonSupplyState))
 
 @future.coroutine
 def cisco_psu_table_plugin(controller, collector):
-	for oid, value in (yield plugins.snmpwalk(controller, ciscoEnvMonSupplyState)):
+	fut = plugins.snmpwalk(controller, ciscoEnvMonSupplyState)
+	while (yield fut):
+		oid, value, fut = fut.result()
 		name = (yield controller.engine.get(ciscoEnvMonSupplyStatusDescr + (oid[-1],)))
 		state, reason = cisco_state(value)
 		collector.add_alert(report.Alert(state, "psu_%s is %s" % (name, reason)))
@@ -52,7 +56,9 @@ all_oids.update((ciscoMemoryPoolName, ciscoMemoryPoolUsed, ciscoMemoryPoolFree))
 
 @future.coroutine
 def cisco_mem_usage_plugin(controller, collector):
-	for oid, name in (yield plugins.snmpwalk(controller, ciscoMemoryPoolName)):
+	fut = plugins.snmpwalk(controller, ciscoMemoryPoolName)
+	while (yield fut):
+		oid, name, fut = fut.result()
 		used = controller.engine.get(ciscoMemoryPoolUsed + (oid[-1],))
 		free = controller.engine.get(ciscoMemoryPoolFree + (oid[-1],))
 		used = plugins.as_decimal((yield used))

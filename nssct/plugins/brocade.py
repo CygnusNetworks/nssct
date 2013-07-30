@@ -40,7 +40,9 @@ all_oids.update((snChasUnitActualTemp, snChasUnitWarningTem, snChasUnitShutdownT
 
 @future.coroutine
 def brocade_unit_temperature_plugin(controller, collector):
-	for oid, value in (yield plugins.snmpwalk(controller, snChasUnitActualTemp)):
+	fut = plugins.snmpwalk(controller, snChasUnitActualTemp)
+	while (yield fut):
+		oid, value, fut = fut.result()
 		unit = oid[-1]
 		act = brcd_temp(value)
 		warn = brcd_temp((yield controller.engine.get(snChasUnitWarningTem + (unit,))))
@@ -57,7 +59,9 @@ all_oids.add(snAgentTempValue)
 
 @future.coroutine
 def brocade_agent_temperature_plugin(controller, collector):
-	for oid, value in (yield plugins.snmpwalk(controller, snAgentTempValue)):
+	fut = plugins.snmpwalk(controller, snAgentTempValue)
+	while (yield fut):
+		oid, value, fut = fut.result()
 		ident = oid[len(snAgentTempValue):]
 		ident = "_".join(map(str, ident))
 		act = brcd_temp(value)
@@ -69,7 +73,9 @@ all_oids.add(snChasFanOperStatus)
 
 @future.coroutine
 def brocade_fan_table_plugin(controller, collector):
-	for oid, value in (yield plugins.snmpwalk(controller, snChasFanOperStatus)):
+	fut = plugins.snmpwalk(controller, snChasFanOperStatus)
+	while (yield fut):
+		oid, value, fut = fut.result()
 		value = int(value)
 		if value == 2:
 			msg = "fan %d is ok" % oid[-1]
@@ -85,7 +91,9 @@ all_oids.update((snChasPwrSupplyDescription, snChasPwrSupplyOperStatus))
 
 @future.coroutine
 def brocade_psu_table_plugin(controller, collector):
-	for oid, value in (yield plugins.snmpwalk(controller, snChasPwrSupplyOperStatus)):
+	fut = plugins.snmpwalk(controller, snChasPwrSupplyOperStatus)
+	while (yield fut):
+		oid, value, fut = fut.result()
 		value = int(value)
 		index = oid[-1]
 		if value == 2: # normal
@@ -108,7 +116,9 @@ all_oids.add(snAgentCpuUtilValue)
 
 @future.coroutine
 def brocade_cpu_usage_plugin(controller, collector):
-	for oid, value in (yield plugins.snmpwalk(controller, snAgentCpuUtilValue)):
+	fut = plugins.snmpwalk(controller, snAgentCpuUtilValue)
+	while (yield fut):
+		oid, value, fut = fut.result()
 		if oid[-1] != 300:  # select 5min interval
 			continue
 		slot = oid[-3]

@@ -42,25 +42,27 @@ def oid_startswith(oid, initialoid):
 
 
 @future.coroutine
-def snmpwalk(controller, oid):
+def snmpwalk(controller, baseoid, startoid=None):
+	"""Walk over all oids, that start with baseoid using getnext queries and
+	use startoid as the first oid. The resulting future returns a tuple of
+	(oid, value, fut) or None, if there are no more rows. The returned future
+	gives the next row and so on. Typical usage in a coroutine:
+
+	fut = snmpwalk(controller, baseoid)
+	while (yield fut):
+		oid, value, fut = fut.result()
+		# do something with oid and value
 	"""
-	@returns: a list of variable binding pairs (as the result of the Future)
-	"""
-	baseoid = oid
-	lastoid = None
-	varbinds = []
-	while True:
-		try:
-			oid, value = (yield controller.engine.getnext(oid))
-		except engine.EndOfMibError:
-			break
-		if not oid_startswith(oid, baseoid):
-			break
-		if lastoid and lastoid >= oid:
-			break
-		varbinds.append((oid, value))
-		lastoid = oid
-	future.return_(varbinds)
+	if startoid is None:
+		startoid = baseoid
+	try:
+		nextoid, value = (yield controller.engine.getnext(startoid))
+	except engine.EndOfMibError:
+		future.return_(None)
+	if not oid_startswith(nextoid, baseoid):
+		future.return_(None)
+	future.return_((nextoid, value, snmpwalk(controller, baseoid, nextoid)))
+
 
 sysObjectID = (1, 3, 6, 1, 2, 1, 1, 2, 0)
 all_oids.add(sysObjectID)

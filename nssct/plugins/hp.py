@@ -29,7 +29,9 @@ all_oids.add(hpicfSensorEntry)
 @future.coroutine
 def hp_sensors_plugin(controller, collector):
 	device_num = device_type = None
-	for oid, value in (yield plugins.snmpwalk(controller, hpicfSensorEntry)):
+	fut = plugins.snmpwalk(controller, hpicfSensorEntry)
+	while (yield fut):
+		oid, value, fut = fut.result()
 		tail = oid[len(hpicfSensorEntry):]
 		if tail[0] == 1:  # hpicfSensorIndex
 			device_num = value
@@ -50,7 +52,9 @@ all_oids.update((hpGlobalMemTotalBytes, hpGlobalMemAllocBytes))
 
 @future.coroutine
 def hp_mem_usage_plugin(controller, collector):
-	for oid, value in (yield plugins.snmpwalk(controller, hpGlobalMemAllocBytes)):
+	fut = plugins.snmpwalk(controller, hpGlobalMemAllocBytes)
+	while (yield fut):
+		oid, value, fut = fut.result()
 		value = plugins.as_decimal(value)
 		total = plugins.as_decimal((yield controller.engine.get(hpGlobalMemTotalBytes + (oid[-1],))))
 		collector.add_metric(report.PerfMetric("mem_%d" % oid[-1], value, uom="B", minval=0, maxval=total))
