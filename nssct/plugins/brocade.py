@@ -79,19 +79,28 @@ def brocade_fan_table_plugin(controller, collector):
 			collector.add_alert(report.Alert(report.CRITICAL, msg))
 
 
+snChasPwrSupplyDescription = brcdIp + (1, 1, 1, 2, 1, 1, 2)
 snChasPwrSupplyOperStatus = brcdIp + (1, 1, 1, 2, 1, 1, 3)
-all_oids.add(snChasPwrSupplyOperStatus)
+all_oids.update((snChasPwrSupplyDescription, snChasPwrSupplyOperStatus))
 
 @future.coroutine
 def brocade_psu_table_plugin(controller, collector):
 	for oid, value in (yield plugins.snmpwalk(controller, snChasPwrSupplyOperStatus)):
 		value = int(value)
-		if value == 2:
-			msg = "psu %d is ok" % oid[-1]
-			collector.add_alert(report.Alert(report.OK, msg))
+		index = oid[-1]
+		if value == 2: # normal
+			alert = report.Alert(report.OK, "psu %d is ok" % index)
+		elif value == 3: # failure
+			msg = str((yield controller.engine.get(snChasPwrSupplyDescription + (index,))))
+			logger.debug("failed psu %d described as %r", index, msg)
+			if msg.rstrip().endswith(" not present"):
+				alert = report.Alert(report.OK, "psu %d is not present" % index)
+			else:
+				alert = report.Alert(report.CRITICAL, "psu %d has failed" % index)
 		else:
-			msg = "psu %d is critical with status %d" % (oid[-1], value)
-			collector.add_alert(report.Alert(report.CRITICAL, msg))
+			msg = "psu %d has unexpected status %d" % (index, value)
+			alert = report.Alert(report.CRITICAL, msg)
+		collector.add_alert(alert)
 
 
 snAgentCpuUtilValue = brcdIp + (1, 1, 2, 11, 1, 1, 4)
