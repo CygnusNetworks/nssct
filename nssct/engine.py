@@ -1,5 +1,6 @@
 # -*- encoding: utf-8 -*-
 
+import functools
 import logging
 
 import pysnmp.proto.rfc1905
@@ -10,6 +11,11 @@ from . import future
 
 logger = logging.getLogger(__name__)
 
+class EngineError(Exception):
+	pass
+
+class NoSuchObjectError(EngineError):
+	pass
 
 class AbstractEngine(object):
 	def __init__(self):
@@ -46,7 +52,10 @@ class SimpleEngine(AbstractEngine):
 
 	def get(self, oid):
 		logger.debug("%r: get %r", self.backend, oid)
-		return future.complete_future(self.backend.get(oid))
+		value = self.backend.get(oid)
+		if isinstance(value, pysnmp.proto.rfc1905.NoSuchObject):
+			return future.failed_future(NoSuchObjectError())
+		return future.complete_future(value)
 
 	def getnext(self, oid):
 		logger.debug("%r: getnext %r", self.backend, oid)
@@ -69,11 +78,8 @@ class CachingEngine(AbstractEngine):
 
 	def _cacheget(self, oid, fut):
 		if fut.exception():
-			return  # we cannot cache exceptions
+			return  # we cannot cache exceptions, includes NoSuchObject
 		value = fut.result()
-		if isinstance(value, pysnmp.proto.rfc1905.NoSuchObject):
-			logger.debug("not storing NoSuchObject for %r", oid)
-			return
 		logger.debug("storing %r set %r", oid, value)
 		self.cache.set(oid, value)
 		try:
@@ -98,8 +104,12 @@ class CachingEngine(AbstractEngine):
 			futvalue.add_done_callback(lambda fut, oid=oid: self._cacheget(oid, fut))
 			return futvalue
 		else:
-			logger.debug("get %r cached as %r", oid, value)
-			return future.complete_future(value)
+			if isinstance(value, pysnmp.proto.rfc1905.NoSuchObject):
+				logger.debug("get %r cached as nonexistent", oid)
+				return future.failed_future(NoSuchObjectError())
+			else:
+				logger.debug("get %r cached as %r", oid, value)
+				return future.complete_future(value)
 
 	def _cachenext(self, oid, futnext):
 		if futnext.exception():
@@ -182,11 +192,16 @@ class BulkEngine(AbstractEngine):
 		if len(self.pendingnext) == 0:
 			if len(self.pendingget) == 0:
 				logger.debug("nothing to do")
-				return bool(self.pendingget) or bool(self.pendingnext)
+				return False
 			if len(self.pendingget) == 1:
 				oid, fut = self.pendingget.pop(0)
 				logger.debug("single get query for %r", oid)
-				future.complete_with(fut, lambda oid=oid: self.backend.get(oid))
+				@functools.partial(future.complete_with, fut)
+				def do_get():
+					value = self.backend.get(oid)
+					if isinstance(value, pysnmp.proto.rfc1905.NoSuchObject):
+						raise NoSuchObjectError
+					return value
 				return bool(self.pendingget) or bool(self.pendingnext)
 		if maxrep <= 1 and len(self.pendingnext) == 1 and len(self.pendingget) == 0:
 			oid, fut = self.pendingnext.pop(0)
@@ -207,9 +222,10 @@ class BulkEngine(AbstractEngine):
 			logger.debug("bulk processing %r queried %r result %r", noid, qoid, value)
 			if qoid < noid:
 				logger.debug("bulk query %r smaller than result %r, masking to NoSuchObject", qoid, noid)
-				qoid = noid
-				value = pysnmp.proto.rfc1905.noSuchObject
-			if qoid != noid:
+				completions.append((fut.set_exception, NoSuchObjectError()))
+				if self.cache:
+					self.cache.storenext(prev_oid(qoid), noid, value)
+			elif qoid != noid:
 				completions.append((fut.set_exception, backend.BackendError("bad bulk result queried %r != %r returned" % (qoid, noid))))
 			else:
 				completions.append((fut.set_result, value))
