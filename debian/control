@@ -18,6 +18,7 @@ Depends:
  python-pysnmp4,
  ${python:Depends}
 Enhances: nagios3, icinga
+Suggests: python-concurrent.futures
 Architecture: all
 Description: Nagios SNMP Switch Check Tool
  This tool allows almost configuration-less monitoring of the health of some
