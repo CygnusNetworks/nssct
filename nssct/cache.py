@@ -35,6 +35,8 @@ class NextEntry(object):
 	def __lt__(self, other):
 		return self.oid < other.oid
 
+	def __repr__(self):
+		return "%s(%r, %r)" % (self.__class__.__name__, self.oid, self.noid)
 
 class ObjectCache(object):
 	"""An unlimited cache for SNMP GET and GETNEXT queries.
@@ -57,10 +59,18 @@ class ObjectCache(object):
 		@returns: the value stored for the given oid
 		@raises NotCached:
 		"""
+		oid = tuple(oid)
 		try:
-			return self.oids[tuple(oid)]
+			return self.oids[oid]
 		except KeyError:
-			raise NotCached
+			pass
+		i = bisect.bisect_left(self.nexts, NextEntry(oid, None))
+		if i > 0:
+			pair = self.nexts[i - 1]
+			assert pair.oid < oid
+			if oid < pair.noid:
+				return pysnmp.proto.rfc1905.noSuchObject
+		raise NotCached
 
 	def _getnextpointer(self, oid):
 		"""
@@ -115,6 +125,11 @@ class ObjectCache(object):
 		"""Remember that the nextgreater oid than oid is nextoid. Any
 		previously remembered next relations, that contradict the new one, are
 		removed.
+
+		>>> c = ObjectCache()
+		>>> c.setnext((1, 2), (1, 4))
+		>>> c.get((1, 3))
+		NoSuchObject('')
 		"""
 		new = NextEntry(tuple(oid), tuple(nextoid))
 		assert new.oid < new.noid
