@@ -3,6 +3,7 @@
 import decimal
 
 from .. import future
+from .. import engine
 
 try:
 	long
@@ -49,7 +50,10 @@ def snmpwalk(controller, oid):
 	lastoid = None
 	varbinds = []
 	while True:
-		oid, value = (yield controller.engine.getnext(oid))
+		try:
+			oid, value = (yield controller.engine.getnext(oid))
+		except engine.EndOfMibError:
+			break
 		if not oid_startswith(oid, baseoid):
 			break
 		if lastoid and lastoid >= oid:

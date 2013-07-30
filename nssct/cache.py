@@ -187,7 +187,8 @@ class ObjectCache(object):
 		self.set(nextoid, nextvalue)
 
 	def setend(self, oid):
-		"""Remember that the given oid is the last oid.
+		"""Remember that no oids follow the given oid. A lower end from a
+		previous setend call may be retained.
 
 		>>> c = ObjectCache()
 		>>> c.getnext((1, 2))
@@ -199,6 +200,8 @@ class ObjectCache(object):
 		((1, 2), EndOfMibView(''))
 		"""
 		oid = tuple(oid)
+		if self.last is not None and self.last < oid:
+			return
 
 		# remove all NextEntries where noid is bigger than the end
 		while self.nexts and self.nexts[-1].noid > oid:
