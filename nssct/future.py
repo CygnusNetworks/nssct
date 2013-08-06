@@ -105,24 +105,6 @@ def attach_cause(exception, cause):
 	return exception
 
 
-def complete_future(obj):
-	"""Create a new future and set its result to the passed object.
-	@rtype: Future
-	"""
-	future = Future()
-	future.set_result(obj)
-	return future
-
-
-def failed_future(exception):
-	"""Create a new future and set its exception to the passed exception.
-	@rtype: Future
-	"""
-	future = Future()
-	future.set_exception(exception)
-	return future
-
-
 def complete_with(fut, function):
 	"""Use the result or exception from the passed function when invoked
 	without parameters as the result or exception of the given future.
