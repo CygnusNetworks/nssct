@@ -4,7 +4,7 @@ from setuptools import setup
 
 setup(
 		name="nssct",
-		version="0.0",
+		version="0.10",
 		author="Helmut Grohne",
 		author_email="h.grohne@cygnusnetworks.de",
 		maintainer="Cygnus Networks GmbH",
