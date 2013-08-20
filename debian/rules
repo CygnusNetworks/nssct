@@ -10,3 +10,4 @@ endif
 override_dh_install:
 	dh_install
 	install -D -m644 nagios_command.cfg $(CURDIR)/debian/python-nssct/etc/nagios-plugins/config/nssct.cfg
+	install -D -m644 pnp4nagios_template.php $(CURDIR)/debian/python-nssct/etc/pnp4nagios/templates/check_nssct.php
