@@ -66,9 +66,19 @@ def cisco_mem_usage_plugin(controller, collector):
 		collector.add_metric(report.PerfMetric("mem_%s" % name, used, uom="B", minval=0, maxval=total))
 
 
+ciscoCpmCPUTotal5minRev = cisco + (9, 109, 1, 1, 1, 1, 8)
+all_oids.add(ciscoCpmCPUTotal5minRev)
+@future.coroutine
+def cisco_cpu_usage_plugin(controller, collector):
+	fut = plugins.snmpwalk(controller, ciscoCpmCPUTotal5minRev)
+	while (yield fut):
+		oid, usage, fut = fut.result()
+		collector.add_metric(report.PerfMetric("cpu_%d" % oid[-1], usage, uom="%", minval=0, maxval=100))
+
 @future.coroutine
 def cisco_detect(controller, collector):
 	controller.start_plugin(collector, cisco_fan_table_plugin)
 	controller.start_plugin(collector, cisco_psu_table_plugin)
 	controller.start_plugin(collector, cisco_mem_usage_plugin)
+	controller.start_plugin(collector, cisco_cpu_usage_plugin)
 	future.return_()
