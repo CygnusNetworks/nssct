@@ -21,12 +21,21 @@ class EndOfMibError(EngineError):
 	pass
 
 class AbstractEngine(object):
+	"""An engine encapsulates the process of retrieving objects from a SNMP
+	agent. It supports GET and GETNEXT operations and may be turning them into
+	GETBULK operations internally. To use the engine schedule a number of GET
+	and GETNEXT queries using the respective methods. Then issue a call to the
+	step method. Some futures are now completed and can issue further GET and
+	GETNEXT queries in their callbacks. Issue step calls until it returns
+	False signalling the completion of all returned futures."""
 	def __init__(self):
 		pass
 
 	def get(self, oid):
 		"""
 		@returns: a Future returning the object associated with the given oid
+		@raises NoSuchObjectError:
+		@raises EndOfMibError:
 		"""
 		raise NotImplementedError
 
@@ -34,6 +43,7 @@ class AbstractEngine(object):
 		"""
 		@returns: a Future returning a pair of the next greater oid and its
 				value
+		@raises EndOfMibError:
 		"""
 		raise NotImplementedError
 
@@ -177,6 +187,7 @@ class CachingEngine(AbstractEngine):
 
 
 def prev_oid(oid):
+	"""Return an OID that is minimally smaller than the given OID."""
 	assert len(oid)
 	if oid[-1] == 0:
 		return oid[:-1]

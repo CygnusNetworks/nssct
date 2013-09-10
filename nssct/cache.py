@@ -5,7 +5,7 @@ import functools
 
 import pysnmp.proto.rfc1905
 
-__all__ = ["NotCached", "ObjectCache"]
+__all__ = ["NotCached", "EndOfMib", "ObjectCache"]
 
 
 class NotCached(Exception):

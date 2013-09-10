@@ -1,7 +1,31 @@
 # -*- encoding: utf-8 -*-
 
 """A future is a result, that does not yet exist. It will become available in
-some future. This is what the Future class encapsulates."""
+some future. This is what the Future class encapsulates.
+
+These futures are asynchronous, so if you wan to react to a completing future,
+you attach a callback to it. If it already is completed, the callback will run
+immediately. Otherwise it will run on completion. It is invoked regardless of
+whether the future has a result or terminates with an exception.
+
+The easiest way to use Futures is to use the coroutine decorator.
+
+@coroutine
+def some_function(normal_parameters):
+	# starting functions that return future results
+    fut = function_returning_a_future()
+	fut2 = another_function_returning_a_future()
+	# waiting for the results to arrive
+	actual_result = (yield fut)  # may raise an exception
+	other_result = (yield fut2)
+	# causing an error
+	if actual_result < other_result:
+		raise SomeException("something went wrong")
+	# returning a result
+	return_(actual_result + other_result)
+
+Now some_function is a function that returns a Future when called.
+"""
 
 import functools
 import logging
