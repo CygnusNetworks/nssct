@@ -22,3 +22,6 @@ coverage:.coverage
 
 coverage-annotate:.coverage
 	find nssct -name "*.py" | xargs $(PYTHON_COVERAGE) annotate
+
+update-cases:
+	$(PYTHON) -m nssct.walkfilter --srcprefix private --dstprefix cases --transform private/log.map
