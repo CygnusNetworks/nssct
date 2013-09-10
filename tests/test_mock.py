@@ -1,5 +1,5 @@
+import io
 import unittest
-from StringIO import StringIO
 
 import pysnmp.proto.rfc1905
 
@@ -11,7 +11,7 @@ import nssct.report
 
 class MockTests(unittest.TestCase):
 	def setUp(self):
-		dump = StringIO(".1.3.6.1.2.1.1.2.0 = OID: 0.1.2.3")
+		dump = io.StringIO(u".1.3.6.1.2.1.1.2.0 = OID: 0.1.2.3")
 		self.backend = nssct.backend.mock.MockBackend(dump)
 
 	def test_undetected(self):

@@ -35,6 +35,9 @@ class NextEntry(object):
 	def __lt__(self, other):
 		return self.oid < other.oid
 
+	def __hash__(self):
+		return hash(("NextEntry", self.oid, self.noid))
+
 	def __repr__(self):
 		return "%s(%r, %r)" % (self.__class__.__name__, self.oid, self.noid)
 
