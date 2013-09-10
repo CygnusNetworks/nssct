@@ -1,0 +1,7 @@
+*.py[co]
+# python-coverage related:
+*,cover
+/.coverage
+# setup.py build related:
+/build/
+/nssct.egg-info/
