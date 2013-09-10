@@ -95,7 +95,10 @@ class CachingEngine(AbstractEngine):
 			engine.setcache(self)
 
 	def _cacheget(self, oid, fut):
-		if fut.exception():
+		exc = fut.exception()
+		if exc:
+			if isinstance(exc, EndOfMibError):
+				self.storeend(oid)
 			return  # we cannot cache exceptions, includes NoSuchObject
 		value = fut.result()
 		logger.debug("storing %r set %r", oid, value)
