@@ -64,6 +64,8 @@ def main():
 	group = parser.add_mutually_exclusive_group(required=True)
 	group.add_argument("--filter", action="store_true", help="act as a filter")
 	group.add_argument("--transform", metavar="MAPPING", type=argparse.FileType("r"), help="transform all files given in the mapping file")
+	parser.add_argument("--srcprefix", metavar="PREFIX", default="", help="when transforming data files prepend this PREFIX to source paths")
+	parser.add_argument("--dstprefix", metavar="PREFIX", default="", help="when transforming data files prepend this PREFIX to destination paths")
 	args = parser.parse_args()
 	if args.filter:
 		check_stream(sys.stdin, sys.stdout)
@@ -77,6 +79,8 @@ def main():
 			if not match:
 				raise ValueError("syntax error on line %d" % (lineno + 1))
 			destination, source = match.groups()
+			source = os.path.join(args.srcprefix, source)
+			destination = os.path.join(args.dstprefix, destination)
 			res.append(exe.submit(transform, source, destination))
 		while res:
 			res.pop(0).result()  # propagate exceptions
