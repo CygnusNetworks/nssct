@@ -7,11 +7,22 @@ from . import report
 logger = logging.getLogger(__name__)
 
 class Controller(object):
+	"""The controller keeps the pieces (engine, collector, and plugins)
+	together. The collector is just passed on to the plugins, the controller
+	does not operate itself on a collector. A plugin is a function that takes
+	references to the controller and the collector and returns a future.
+	Plugins will access the engine attribute of the controller to query SNMP
+	OIDs. They can also use the start_plugin method to start further plugins.
+	"""
+
 	def __init__(self, engine):
 		self.engine = engine
 		self.pending_plugins = []
 
 	def start_plugin(self, collector, plugin):
+		"""Start the given plugin with the given collector.
+		@type collector: Collector
+		"""
 		logger.debug("starting plugin %r", plugin)
 		def completion(fut):
 			self.pending_plugins.remove(fut)
@@ -30,13 +41,22 @@ class Controller(object):
 			self.pending_plugins.append(fut)
 			fut.add_done_callback(completion)
 
+	def step(self):
+		"""Run an engine step and return whether more steps are needed to finish
+		the started plugins.
+		@rtype: bool
+		"""
+		workleft = self.engine.step()
+		if self.pending_plugins and not workleft:
+			logger.error("some plugins failed to complete")
+			return False
+		return bool(self.pending_plugins)
+
 	def run(self, collector, plugins):
+		"""Start the given plugins and iterate engine steps until all plugins
+		finish."""
 		for plugin in plugins:
 			self.start_plugin(collector, plugin)
 
-		workleft = self.engine.step()
-		while self.pending_plugins:
-			if not workleft:
-				logger.error("some plugins failed to complete")
-				return
-			workleft = self.engine.step()
+		while self.step():
+			pass
