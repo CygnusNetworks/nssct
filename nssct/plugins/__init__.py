@@ -46,12 +46,12 @@ def snmpwalk(controller, baseoid, startoid=None):
 	"""Walk over all oids, that start with baseoid using getnext queries and
 	use startoid as the first oid. The resulting future returns a tuple of
 	(oid, value, fut) or None, if there are no more rows. The returned future
-	gives the next row and so on. Typical usage in a coroutine:
+	gives the next row and so on. Typical usage in a coroutine::
 
-	fut = snmpwalk(controller, baseoid)
-	while (yield fut):
-		oid, value, fut = fut.result()
-		# do something with oid and value
+		fut = snmpwalk(controller, baseoid)
+		while (yield fut):
+			oid, value, fut = fut.result()
+			# do something with oid and value
 	"""
 	if startoid is None:
 		startoid = baseoid

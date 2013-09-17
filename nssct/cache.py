@@ -80,8 +80,8 @@ class ObjectCache(object):
 		@rtype: int, NextEntry
 		@returns: the index of the NextEntry and the NextEntry pair
 				[p.oid, p.noid) containing the given oid
-		@raises: NotCached
-		@raises: EndOfMib
+		@raises NotCached:
+		@raises EndOfMib:
 		"""
 		oid = tuple(oid)
 		if self.last and oid >= self.last:

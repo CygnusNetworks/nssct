@@ -16,7 +16,7 @@ del name  # pylint: disable=W0631
 
 class PerfRange(object):
 	"""
-	@see http://nagiosplug.sourceforge.net/developer-guidelines.html
+	@see: http://nagiosplug.sourceforge.net/developer-guidelines.html
 	"""
 	def __init__(self, high, low=0, invert=False):
 		"""A PerfRange basically is an interval from low to high inclusively.
