@@ -30,6 +30,8 @@ class ExceptionFormatter(logging.Formatter):
 				sio.write("%s\n" % exception)
 			if not hasattr(exception, "__cause__"):
 				break
+			if exception.__cause__ is None:
+				break
 			sio.write("caused by\n")
 			exception = exception.__cause__
 			type_ = type(exception)
