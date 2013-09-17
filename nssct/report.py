@@ -64,7 +64,7 @@ class PerfRange(object):
 			return cls(None, None)
 		if isinstance(obj, PerfRange):
 			return cls(obj.high, obj.low, obj.invert)
-		if isinstance(obj, str) or isinstance(obj, unicode):
+		if isinstance(obj, str):
 			return cls.fromstr(obj)
 		return cls(obj)
 
