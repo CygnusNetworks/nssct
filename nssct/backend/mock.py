@@ -108,7 +108,7 @@ def cache_snmpwalk(obj):
 	@rtype: ObjectCache
 	"""
 	if isinstance(obj, str):
-		with file(obj) as fhandle:
+		with open(obj) as fhandle:
 			return cache.ObjectCache.frompairs(parse_snmpwalk(fhandle))
 	return cache.ObjectCache.frompairs(parse_snmpwalk(obj))
 
