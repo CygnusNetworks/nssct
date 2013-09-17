@@ -131,8 +131,8 @@ class ObjectCache(object):
 
 		>>> c = ObjectCache()
 		>>> c.setnext((1, 2), (1, 4))
-		>>> c.get((1, 3))
-		NoSuchObject('')
+		>>> c.get((1, 3)) # doctest: +ELLIPSIS
+		NoSuchObject(...)
 		"""
 		new = NextEntry(tuple(oid), tuple(nextoid))
 		assert new.oid < new.noid
@@ -199,8 +199,8 @@ class ObjectCache(object):
 			....
 		NotCached:
 		>>> c.setend((1, 1))
-		>>> c.getnext((1, 2))
-		((1, 2), EndOfMibView(''))
+		>>> c.getnext((1, 2)) # doctest: +ELLIPSIS
+		((1, 2), EndOfMibView(...))
 		"""
 		oid = tuple(oid)
 		if self.last is not None and self.last < oid:
