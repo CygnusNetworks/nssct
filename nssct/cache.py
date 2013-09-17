@@ -73,7 +73,7 @@ class ObjectCache(object):
 			assert pair.oid < oid
 			if oid < pair.noid:
 				return pysnmp.proto.rfc1905.noSuchObject
-		raise NotCached
+		raise NotCached(oid)
 
 	def _getnextpointer(self, oid):
 		"""
@@ -89,12 +89,12 @@ class ObjectCache(object):
 		i = bisect.bisect_right(self.nexts, NextEntry(oid, None))
 		assert i == len(self.nexts) or self.nexts[i].oid > oid
 		if i == 0:
-			raise NotCached
+			raise NotCached(oid)
 		i -= 1
 		pair = self.nexts[i]
 		assert pair.oid <= oid
 		if pair.noid <= oid:
-			raise NotCached
+			raise NotCached(oid)
 		return i, pair
 
 	def getnext(self, oid):
@@ -114,10 +114,10 @@ class ObjectCache(object):
 		"""Associate the given oid with the given value.
 
 		>>> c = ObjectCache()
-		>>> c.get((1, 2))
+		>>> c.get((1, 2)) # doctest: +IGNORE_EXCEPTION_DETAIL
 		Traceback (most recent call last):
 			....
-		NotCached
+		NotCached:
 		>>> c.set((1, 2), 'spam')
 		>>> c.get((1, 2))
 		'spam'
@@ -173,15 +173,15 @@ class ObjectCache(object):
 		>>> c.getnext((6, 7))
 		((7, 8), 'b')
 		>>> c.setnextvalue((6, 8), (7, 9), 'c')
-		>>> c.getnext((6, 7))
+		>>> c.getnext((6, 7)) # doctest: +IGNORE_EXCEPTION_DETAIL
 		Traceback (most recent call last):
 			....
-		NotCached
+		NotCached:
 		>>> c.setnextvalue((0, 1), (2, 1), 'd')
-		>>> c.getnext((2, 3))
+		>>> c.getnext((2, 3)) # doctest: +IGNORE_EXCEPTION_DETAIL
 		Traceback (most recent call last):
 			....
-		NotCached
+		NotCached:
 		>>> c.setnextvalue((1, 2), (2, 1), 'd')
 		>>> c.getnext((0, 1))
 		((2, 1), 'd')
@@ -194,10 +194,10 @@ class ObjectCache(object):
 		previous setend call may be retained.
 
 		>>> c = ObjectCache()
-		>>> c.getnext((1, 2))
+		>>> c.getnext((1, 2)) # doctest: +IGNORE_EXCEPTION_DETAIL
 		Traceback (most recent call last):
 			....
-		NotCached
+		NotCached:
 		>>> c.setend((1, 1))
 		>>> c.getnext((1, 2))
 		((1, 2), EndOfMibView(''))
