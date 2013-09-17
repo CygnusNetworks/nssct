@@ -1,17 +1,22 @@
 # -*- encoding: utf-8 -*-
 
-import cStringIO
+import io
 import logging
 import logging.handlers
 import sys
 import traceback
+
+if str is bytes:
+	StringIO = io.BytesIO
+else:
+	StringIO = io.StringIO
 
 class ExceptionFormatter(logging.Formatter):
 	"""A formatter that looks at Python3-ish __traceback__ and __cause__
 	attributes on exceptions and prints them in addition to the normal
 	traceback."""
 	def formatException(self, exc_info):
-		sio = cStringIO.StringIO()
+		sio = StringIO()
 		type_, exception, trace = exc_info
 		while True:
 			if trace is not None:
