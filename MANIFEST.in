@@ -1,4 +1,7 @@
+include .coveragerc
 include LICENSE
+include Makefile
+include cases/*.log
 include nagios_command.cfg
 include pnp4nagios_template.php
 include tests/*.py
