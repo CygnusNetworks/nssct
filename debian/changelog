@@ -1,6 +1,10 @@
 nssct (0.11) UNRELEASED; urgency=low
 
   * Add pnp4nagios template.
+  * Add cisco cpu check.
+  * Add snmpdump based testing.
+  * Support Python3 where feasible.
+  * Improve code documentation.
 
  -- Helmut Grohne <h.grohne@cygnusnetworks.de>  Tue, 20 Aug 2013 12:43:52 +0200
 
