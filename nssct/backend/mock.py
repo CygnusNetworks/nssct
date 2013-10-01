@@ -29,8 +29,8 @@ def parse_oid(oid):
 
 def parse_hexstring(string):
 	"""
-	>>> parse_hexstring("66 6f 6f")
-	OctetString('foo')
+	>>> bytes(parse_hexstring("66 6f 6f")) == b"foo"
+	True
 	"""
 	string = string.replace(" ", "")
 	if not isinstance(string, bytes):
@@ -64,8 +64,8 @@ def parse_snmpwalk_line(line):
 
 	>>> parse_snmpwalk_line(".1.2 = INTEGER: 3")
 	((1, 2), Integer(3))
-	>>> parse_snmpwalk_line('.1.3 = ""')
-	((1, 3), OctetString(''))
+	>>> bytes(parse_snmpwalk_line('.1.3 = ""')[1]) == b""
+	True
 	>>> parse_snmpwalk_line('.1.4 = OID: .3.4')
 	((1, 4), ObjectName(3.4))
 	"""
