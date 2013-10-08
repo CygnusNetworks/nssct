@@ -35,7 +35,7 @@ def brocade_temperature_plugin(controller, collector):
 
 snChasUnitActualTemp = brcdIp + (1, 1, 1, 4, 1, 1, 4)
 snChasUnitWarningTem = brcdIp + (1, 1, 1, 4, 1, 1, 5)
-snChasUnitShutdownTemperature = brcdIp + (1, 1, 1, 4, 1, 1, 5)
+snChasUnitShutdownTemperature = brcdIp + (1, 1, 1, 4, 1, 1, 6)
 all_oids.update((snChasUnitActualTemp, snChasUnitWarningTem, snChasUnitShutdownTemperature))
 
 @future.coroutine
