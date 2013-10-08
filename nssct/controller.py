@@ -13,6 +13,11 @@ class Controller(object):
 	references to the controller and the collector and returns a future.
 	Plugins will access the engine attribute of the controller to query SNMP
 	OIDs. They can also use the start_plugin method to start further plugins.
+
+	The main reason to use a controller object instead of just starting
+	plugins is to notice when a plugin fails to complete. Without the
+	controller, a missing callback invocation could abort a plugin without
+	anything noticing.
 	"""
 
 	def __init__(self, engine):

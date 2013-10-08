@@ -4,6 +4,8 @@ class BackendError(Exception):
 	pass
 
 class BackendBase(object):
+	"""The backend classes encapsulate the actual query invocation in a
+	synchronous way that permits replaying captured snmp dumps.  """
 	def __init__(self):
 		pass
 
