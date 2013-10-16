@@ -16,9 +16,14 @@ class ExceptionFormatter(logging.Formatter):
 	attributes on exceptions and prints them in addition to the normal
 	traceback."""
 	def formatException(self, exc_info):
+		seen = set()
 		sio = StringIO()
 		type_, exception, trace = exc_info
 		while True:
+			if id(exception) in seen:
+				sio.write("circular cause sequence\n")
+				break
+			seen.add(id(exception))
 			if trace is not None:
 				traceback.print_exception(type_, exception, trace, None, sio)
 				if hasattr(exception, "__traceback__"):
