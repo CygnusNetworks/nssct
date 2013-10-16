@@ -26,7 +26,7 @@ class ExceptionFormatter(logging.Formatter):
 			seen.add(id(exception))
 			if trace is not None:
 				traceback.print_exception(type_, exception, trace, None, sio)
-				if hasattr(exception, "__traceback__"):
+				if hasattr(exception, "__traceback__") and exception.__traceback__ is not trace:
 					sio.write("original traceback\n")
 					traceback.print_exception(type_, exception, exception.__traceback__, None, sio)
 			elif hasattr(exception, "__traceback__"):
