@@ -2,6 +2,7 @@
 
 import logging
 
+from .. import engine
 from .. import future
 from .. import plugins
 from .. import report
@@ -157,6 +158,32 @@ def brocade_mem_usage_plugin(controller, collector):
 	free = plugins.as_decimal((yield free))
 	collector.add_metric(report.PerfMetric("dynmem", total - free, uom="B", minval=0, maxval=total))
 
+snStackingGlobalConfigSt = brcdIp + (1, 1, 3, 31, 1, 1, 0)
+snStackingConfigUnitPriority = brcdIp + (1, 1, 3, 31, 2, 1, 1, 2)
+all_oids.update((snStackingGlobalConfigSt, snStackingConfigUnitPriority))
+
+@future.coroutine
+def brocade_stack_plugin(controller, collector):
+	try:
+		stackcfg = (yield controller.engine.get(snStackingGlobalConfigSt))
+	except (engine.NoSuchObjectError, engine.EndOfMibError):
+		alert = report.Alert(report.OK, "stacking not available")
+	else:
+		if stackcfg != 1:  # enabled
+			alert = report.Alert(report.OK, "stacking not enabled")
+		else:
+			fut = plugins.snmpwalk(controller, snStackingConfigUnitPriority)
+			count = 0
+			while (yield fut):
+				oid, value, fut = fut.result()
+				count += 1
+			if count == 0:
+				alert = report.Alert(report.CRITICAL, "stacking switch without units")
+			elif count == 1:
+				alert = report.Alert(report.CRITICAL, "stacking switch with only one unit")
+			else:
+				alert = report.Alert(report.OK, "stacking switch with %d units" % count)
+	collector.add_alert(alert)
 
 snBigIronRXFamily = brcdIp + (1, 3, 40)
 
@@ -169,6 +196,7 @@ def brocade_detect(controller, collector):
 	controller.start_plugin(collector, brocade_psu_table_plugin)
 	controller.start_plugin(collector, brocade_cpu_usage_plugin)
 	controller.start_plugin(collector, brocade_mem_usage_plugin)
+	controller.start_plugin(collector, brocade_stack_plugin)
 	oid = (yield controller.engine.get(plugins.sysObjectID))
 	if not plugins.oid_startswith(oid, snBigIronRXFamily):
 		controller.start_plugin(collector, brocade_temperature_plugin)
