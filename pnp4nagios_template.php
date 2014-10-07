@@ -4,7 +4,7 @@ foreach($this->DS as $KEY=>$VAL) {
 	if(preg_match("/^(chas|agent).*temp$/", $VAL['NAME'])) {
 		if(!array_key_exists("temperature", $ds_name)) {
 			$ds_name["temperature"] = "Temperature";
-			$opt["temperature"] = "--vertical-label °C --lower-limit 0";
+			$opt["temperature"] = "--vertical-label °C --lower-limit 15";
 			$def["temperature"] = "";
 		}
 		$def["temperature"] .= rrd::def($VAL['NAME'], $VAL['RRDFILE'], $VAL["DS"], "AVERAGE");
