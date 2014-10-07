@@ -1,4 +1,4 @@
-nssct (0.11) UNRELEASED; urgency=low
+nssct (0.11) wheezy; urgency=low
 
   * Add pnp4nagios template.
   * Add cisco cpu check.
@@ -7,7 +7,7 @@ nssct (0.11) UNRELEASED; urgency=low
   * Improve code documentation.
   * Fix Brocade PSU
 
- -- Torge Szczepanek <debian@cygnusnetworks.de>  Tue, 07 Oct 2014 12:16:54 +0200
+ -- Torge Szczepanek <debian@cygnusnetworks.de>  Tue, 07 Oct 2014 12:48:42 +0200
 
 nssct (0.10) wheezy; urgency=low
 
