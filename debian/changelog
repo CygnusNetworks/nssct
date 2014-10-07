@@ -5,11 +5,12 @@ nssct (0.11) UNRELEASED; urgency=low
   * Add snmpdump based testing.
   * Support Python3 where feasible.
   * Improve code documentation.
+  * Fix Brocade PSU
 
- -- Helmut Grohne <h.grohne@cygnusnetworks.de>  Tue, 20 Aug 2013 12:43:52 +0200
+ -- Torge Szczepanek <debian@cygnusnetworks.de>  Tue, 07 Oct 2014 12:16:54 +0200
 
 nssct (0.10) wheezy; urgency=low
 
   * Initial release.
 
- -- Helmut Grohne <h.grohne@cygnusnetworks.de>  Tue, 16 Jul 2013 13:32:58 +0200
+ -- Helmut Grohne <debian@cygnusnetworks.de>  Tue, 16 Jul 2013 13:32:58 +0200
