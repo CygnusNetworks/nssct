@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/CygnusNetworks/nssct.svg?branch=master)](https://travis-ci.org/CygnusNetworks/nssct)
+
 What is nssct?
 ==============
 
@@ -33,3 +35,5 @@ If your device does not work with nssct, please create a machine readable dump.
 Use the following parameters to do that:
 
     snmpwalk -Onx --hexOutputLength=1024 ...
+    
+
