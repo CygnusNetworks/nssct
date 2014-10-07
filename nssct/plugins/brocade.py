@@ -124,6 +124,8 @@ def brocade_psu_table_plugin(controller, collector):
 				alert = report.Alert(report.OK, "psu %d is not present" % index)
 			else:
 				alert = report.Alert(report.CRITICAL, "psu %d has failed" % index)
+		elif value == 1:  # other
+			alert = report.Alert(report.OK, "psu %d is state other (possibly not present)" % index)
 		else:
 			msg = "psu %d has unexpected status %d" % (index, value)
 			alert = report.Alert(report.CRITICAL, msg)
