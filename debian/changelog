@@ -1,3 +1,9 @@
+nssct (0.12) UNRELEASED; urgency=low
+
+  * Update doctests for pysnmp 4.3 and later.
+
+ -- Peter Adam <debian@cygnusnetworks.de>  Tue, 01 Oct 2019 13:19:44 +0200
+
 nssct (0.11) wheezy; urgency=low
 
   * Add pnp4nagios template.

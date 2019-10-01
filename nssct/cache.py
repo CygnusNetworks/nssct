@@ -131,8 +131,8 @@ class ObjectCache(object):
 
 		>>> c = ObjectCache()
 		>>> c.setnext((1, 2), (1, 4))
-		>>> c.get((1, 3)) # doctest: +ELLIPSIS
-		NoSuchObject(...)
+		>>> isinstance(c.get((1, 3)),pysnmp.proto.rfc1905.NoSuchObject) # doctest: +ELLIPSIS
+		True
 		"""
 		new = NextEntry(tuple(oid), tuple(nextoid))
 		assert new.oid < new.noid
@@ -199,8 +199,8 @@ class ObjectCache(object):
 			....
 		NotCached:
 		>>> c.setend((1, 1))
-		>>> c.getnext((1, 2)) # doctest: +ELLIPSIS
-		((1, 2), EndOfMibView(...))
+		>>> isinstance(c.getnext((1, 2))[1], pysnmp.proto.rfc1905.EndOfMibView) # doctest: +ELLIPSIS
+		True
 		"""
 		oid = tuple(oid)
 		if self.last is not None and self.last < oid:

@@ -62,12 +62,12 @@ def parse_snmpwalk_line(line):
 	@returns: (oid, object)
 	@raises ValueError: when the parse fails
 
-	>>> parse_snmpwalk_line(".1.2 = INTEGER: 3")
-	((1, 2), Integer(3))
+	>>> parse_snmpwalk_line(".1.2 = INTEGER: 3")[1] == pysnmp.proto.rfc1902.Integer(3)
+	True
 	>>> bytes(parse_snmpwalk_line('.1.3 = ""')[1]) == b""
 	True
-	>>> parse_snmpwalk_line('.1.4 = OID: .3.4')
-	((1, 4), ObjectName(3.4))
+	>>> parse_snmpwalk_line('.1.4 = OID: .3.4')[1] == pysnmp.proto.rfc1902.ObjectName("3.4")
+	True
 	"""
 	match = re.match(r'^([0-9.]+?)\s*=\s*(.*?)\s*$', line)
 	if not match:
