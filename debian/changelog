@@ -1,6 +1,7 @@
-nssct (0.12) UNRELEASED; urgency=low
+nssct (0.12) buster; urgency=low
 
   * Update doctests for pysnmp 4.3 and later.
+  * Relase for buster
 
  -- Peter Adam <debian@cygnusnetworks.de>  Tue, 01 Oct 2019 13:19:44 +0200
 
