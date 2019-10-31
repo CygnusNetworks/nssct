@@ -132,6 +132,34 @@ def brocade_psu_table_plugin(controller, collector):
 		collector.add_alert(alert)
 
 
+snChasPwrSupply2Description = brcdIp + (1, 1, 1, 2, 2, 1, 3)
+snChasPwrSupply2OperStatus = brcdIp + (1, 1, 1, 2, 2, 1, 4)
+all_oids.update((snChasPwrSupply2Description, snChasPwrSupply2OperStatus))
+
+@future.coroutine
+def brocade_stack_psu_table_plugin(controller, collector):
+	fut = plugins.snmpwalk(controller, snChasPwrSupply2OperStatus)
+	while (yield fut):
+		oid, value, fut = fut.result()
+		value = int(value)
+		index = "_".join(map(str, oid[len(snChasPwrSupply2OperStatus):]))
+		if value == 2: # normal
+			alert = report.Alert(report.OK, "stack psu %s is ok" % index)
+		elif value == 3: # failure
+			msg = str((yield controller.engine.get(snChasPwrSupply2Description + (index,))))
+			logger.debug("failed stack psu %s described as %r", index, msg)
+			if msg.rstrip().endswith(" not present"):
+				alert = report.Alert(report.OK, "stack psu %s is not present" % index)
+			else:
+				alert = report.Alert(report.CRITICAL, "stack psu %s has failed" % index)
+		elif value == 1:  # other
+			alert = report.Alert(report.OK, "stack psu %s is state other (possibly not present)" % index)
+		else:
+			msg = "stack psu %s has unexpected status %d" % (index, value)
+			alert = report.Alert(report.CRITICAL, msg)
+		collector.add_alert(alert)
+
+
 snAgentCpuUtilValue = brcdIp + (1, 1, 2, 11, 1, 1, 4)
 all_oids.add(snAgentCpuUtilValue)
 
@@ -160,6 +188,71 @@ def brocade_mem_usage_plugin(controller, collector):
 	free = plugins.as_decimal((yield free))
 	collector.add_metric(report.PerfMetric("dynmem", total - free, uom="B", minval=0, maxval=total))
 
+
+snStackingGlobalTopology = brcdIp + (1, 1, 3, 31, 1, 5)
+all_oids.add(snStackingGlobalTopology)
+
+@future.coroutine
+def brocade_stacking_topology_plugin(controller, collector):
+	fut = plugins.snmpwalk(controller, snStackingGlobalTopology)
+	while (yield fut):
+		oid, value, fut = fut.result()
+		value = int(value)
+		if value == 3:  # ring
+			alert = report.Alert(report.OK, "stacking topology is ring")
+		elif value == 2:  # chain
+			logger.debug("stacking topology is chain")
+			alert = report.Alert(report.WARNING, "stacking topoplogy is chain")
+		elif value == 4:  # standalone
+			logger.debug("stacking topology is standalone")
+			alert = report.Alert(report.CRITICAL, "stacking topoplogy is standalone")
+		elif value == 1:  # other
+			logger.debug("stacking topology is other")
+			alert = report.Alert(report.CRITICAL, "stacking topology is other")
+		else:
+			msg = "stacking topology has unexpected status %d" % value
+			alert = report.Alert(report.CRITICAL, msg)
+
+		collector.add_alert(alert)
+
+
+snStackingOperUnitImgVer = brcdIp + (1, 1, 3, 31, 2, 2, 1, 13)
+snStackingOperUnitBuildlVer = brcdIp + (1, 1, 3, 31, 2, 2, 1, 14)
+all_oids.update((snStackingOperUnitImgVer, snStackingOperUnitBuildlVer))
+
+@future.coroutine
+def brocade_stacking_version_plugin(controller, collector):
+	def __check_versions(version_type, versions):
+		expected = next(iter(versions.values()))
+		if all(value == expected for value in versions.values()):
+			alert = report.Alert(report.OK, "stack %s version is %s" % (version_type, expected))
+		else:
+			version_strings = []
+			for index in versions:
+				version_strings.append("unit %d: %s" % (index, versions[index]))
+			alert = report.Alert(report.WARNING, "stack %s versions not equal - %s" % (version_type, ", ".join(version_strings)))
+		collector.add_alert(alert)
+
+	fut = plugins.snmpwalk(controller, snStackingOperUnitImgVer)
+
+	img_version = dict()
+	build_version = dict()
+	while (yield fut):
+		oid, value, fut = fut.result()
+		index = oid[len(snStackingOperUnitImgVer)]
+		img_version[index] = value
+
+	__check_versions('image', img_version)
+
+	fut = plugins.snmpwalk(controller, snStackingOperUnitBuildlVer)
+	while (yield fut):
+		oid, value, fut = fut.result()
+		index = oid[len(snStackingOperUnitBuildlVer)]
+		build_version[index] = value
+
+	__check_versions('build', build_version)
+
+
 snStackingGlobalConfigSt = brcdIp + (1, 1, 3, 31, 1, 1, 0)
 snStackingConfigUnitPriority = brcdIp + (1, 1, 3, 31, 2, 1, 1, 2)
 all_oids.update((snStackingGlobalConfigSt, snStackingConfigUnitPriority))
@@ -174,6 +267,10 @@ def brocade_stack_plugin(controller, collector):
 		if stackcfg != 1:  # enabled
 			alert = report.Alert(report.OK, "stacking not enabled")
 		else:
+			# start stack-specific plugins
+			controller.start_plugin(collector, brocade_stacking_topology_plugin)
+			controller.start_plugin(collector, brocade_stacking_version_plugin)
+
 			fut = plugins.snmpwalk(controller, snStackingConfigUnitPriority)
 			count = 0
 			while (yield fut):
@@ -185,6 +282,7 @@ def brocade_stack_plugin(controller, collector):
 				alert = report.Alert(report.CRITICAL, "stacking switch with only one unit")
 			else:
 				alert = report.Alert(report.OK, "stacking switch with %d units" % count)
+
 	collector.add_alert(alert)
 
 snBigIronRXFamily = brcdIp + (1, 3, 40)
@@ -196,6 +294,7 @@ def brocade_detect(controller, collector):
 	controller.start_plugin(collector, brocade_fan_table_plugin)
 	controller.start_plugin(collector, brocade_stack_fan_table_plugin)
 	controller.start_plugin(collector, brocade_psu_table_plugin)
+	controller.start_plugin(collector, brocade_stack_psu_table_plugin)
 	controller.start_plugin(collector, brocade_cpu_usage_plugin)
 	controller.start_plugin(collector, brocade_mem_usage_plugin)
 	controller.start_plugin(collector, brocade_stack_plugin)
