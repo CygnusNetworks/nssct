@@ -194,6 +194,12 @@ all_oids.add(snStackingGlobalTopology)
 
 @future.coroutine
 def brocade_stacking_topology_plugin(controller, collector):
+	fut = plugins.snmpwalk(controller, snStackingConfigUnitPriority)
+	count = 0
+	while (yield fut):
+		oid, value, fut = fut.result()
+		count += 1
+
 	fut = plugins.snmpwalk(controller, snStackingGlobalTopology)
 	while (yield fut):
 		oid, value, fut = fut.result()
@@ -202,7 +208,10 @@ def brocade_stacking_topology_plugin(controller, collector):
 			alert = report.Alert(report.OK, "stacking topology is ring")
 		elif value == 2:  # chain
 			logger.debug("stacking topology is chain")
-			alert = report.Alert(report.WARNING, "stacking topoplogy is chain")
+			if count > 2:
+				alert = report.Alert(report.WARNING, "stacking topoplogy is chain")
+			else:
+				alert = report.Alert(report.OK, "stacking topoplogy is chain")
 		elif value == 4:  # standalone
 			logger.debug("stacking topology is standalone")
 			alert = report.Alert(report.CRITICAL, "stacking topoplogy is standalone")
