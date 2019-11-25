@@ -209,7 +209,7 @@ def brocade_stacking_topology_plugin(controller, collector):
 		elif value == 2:  # chain
 			logger.debug("stacking topology is chain")
 			if count > 2:
-				alert = report.Alert(report.WARNING, "stacking topoplogy is chain")
+				alert = report.Alert(report.WARNING, "stacking topoplogy is chain with %s devices" % count)
 			else:
 				alert = report.Alert(report.OK, "stacking topoplogy is chain")
 		elif value == 4:  # standalone
@@ -221,6 +221,30 @@ def brocade_stacking_topology_plugin(controller, collector):
 		else:
 			msg = "stacking topology has unexpected status %d" % value
 			alert = report.Alert(report.CRITICAL, msg)
+
+		collector.add_alert(alert)
+
+
+snStackingConfigUnitState = brcdIp + (1, 1, 3, 31, 2, 1, 1, 6)
+all_oids.add(snStackingConfigUnitState)
+
+@future.coroutine
+def brocade_stacking_unit_state(controller, collector):
+	fut = plugins.snmpwalk(controller, snStackingConfigUnitState)
+
+	while (yield fut):
+		oid, value, fut = fut.result()
+		value = int(value)
+		index = oid[len(snStackingConfigUnitState):]
+
+		if value == 1:
+			alert = report.Alert(report.OK, "unit %s state is local" % index)
+		if value == 2:
+			alert = report.Alert(report.OK, "unit %s state is remote" % index)
+		if value == 3:
+			alert = report.Alert(report.CRITICAL, "unit %s state is reserved" % index)
+		if value == 4:
+			alert = report.Alert(report.CRITICAL, "unit %s state is empty" % index)
 
 		collector.add_alert(alert)
 
@@ -279,6 +303,7 @@ def brocade_stack_plugin(controller, collector):
 			# start stack-specific plugins
 			controller.start_plugin(collector, brocade_stacking_topology_plugin)
 			controller.start_plugin(collector, brocade_stacking_version_plugin)
+			controller.start_plugin(collector, brocade_stacking_unit_state)
 
 			fut = plugins.snmpwalk(controller, snStackingConfigUnitPriority)
 			count = 0
