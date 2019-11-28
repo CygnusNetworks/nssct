@@ -44,12 +44,19 @@ def parse_timeticks(string):
 		raise ValueError("invalid timeticks value %r" % string)
 	return pysnmp.proto.rfc1902.TimeTicks(long(match.groups()[0]))
 
+
+def parse_integer(string):
+	match = re.search(r'\(?(\d+)\)?', string)
+	if match is None:
+		raise ValueError("invalid integer value %r" % string)
+	return pysnmp.proto.rfc1902.Integer(long(match.groups()[0]))
+
 type_map = {
 		"Counter32":	lambda s: pysnmp.proto.rfc1902.Counter32(long(s)),
 		"Counter64":	lambda s: pysnmp.proto.rfc1902.Counter64(long(s)),
 		"Gauge32":		lambda s: pysnmp.proto.rfc1902.Gauge32(long(s)),
 		"Hex-STRING":   parse_hexstring,
-		"INTEGER":		lambda s: pysnmp.proto.rfc1902.Integer(long(s)),
+		"INTEGER":		parse_integer,
 		"IpAddress":	pysnmp.proto.rfc1902.IpAddress,
 		"OID":			lambda s: pysnmp.proto.rfc1902.ObjectName(parse_oid(s)),
 		"Timeticks":	parse_timeticks,
