@@ -1,6 +1,7 @@
 # -*- encoding: utf-8 -*-
 
 import logging
+import re
 
 from .. import engine
 from .. import future
@@ -189,7 +190,30 @@ def brocade_mem_usage_plugin(controller, collector):
 	collector.add_metric(report.PerfMetric("dynmem", total - free, uom="B", minval=0, maxval=total))
 
 
-snStackingGlobalTopology = brcdIp + (1, 1, 3, 31, 1, 5)
+sysDescr = (1, 3, 6, 1, 2, 1, 1, 1, 0)
+snmpEngineTime = (1, 3, 6, 1, 6, 3, 10, 2, 1, 3, 0)
+all_oids.add((sysDescr, snmpEngineTime))
+
+@future.coroutine
+def brocade_uptime_plugin(controller, collector):
+	warn = None
+	crit = None
+
+	descr = yield controller.engine.get(sysDescr)
+	match = re.match(r"^(Foundry Networks, Inc\..|Brocade Communications Systems, Inc\..|Ruckus Wireless, Inc\. (Stacking System )?)(?P<type>.*),.*", str(descr))
+
+	if match:
+		switch_type = match.groupdict()['type']
+		if switch_type.startswith('ICX6430'):
+			warn = 95040000  # 1100 days
+			crit = 103680000  # 1200 days
+
+	uptime = yield controller.engine.get(snmpEngineTime)
+
+	collector.add_metric(report.PerfMetric("uptime", int(uptime), uom="s", warn=warn, crit=crit))
+
+
+snStackingGlobalTopology = brcdIp + (1, 1, 3, 31, 1, 5, 0)
 all_oids.add(snStackingGlobalTopology)
 
 @future.coroutine
@@ -222,7 +246,7 @@ def brocade_stacking_topology_plugin(controller, collector):
 			msg = "stacking topology has unexpected status %d" % value
 			alert = report.Alert(report.CRITICAL, msg)
 
-		collector.add_alert(alert)
+	collector.add_alert(alert)
 
 
 snStackingConfigUnitState = brcdIp + (1, 1, 3, 31, 2, 1, 1, 6)
@@ -332,6 +356,7 @@ def brocade_detect(controller, collector):
 	controller.start_plugin(collector, brocade_cpu_usage_plugin)
 	controller.start_plugin(collector, brocade_mem_usage_plugin)
 	controller.start_plugin(collector, brocade_stack_plugin)
+	controller.start_plugin(collector, brocade_uptime_plugin)
 	oid = (yield controller.engine.get(plugins.sysObjectID))
 	if not plugins.oid_startswith(oid, snBigIronRXFamily):
 		controller.start_plugin(collector, brocade_temperature_plugin)
