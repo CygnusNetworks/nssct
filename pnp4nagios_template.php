@@ -31,6 +31,25 @@ foreach($this->DS as $KEY=>$VAL) {
 		$def["cpu"] .= rrd::area($VAL['NAME'], rrd::color($KEY), sprintf("%-15s", $VAL['NAME']));
 		$def["cpu"] .= rrd::gprint($VAL['NAME'], array("MAX", "AVERAGE", "LAST"), "%3.1lf %%");
 	}
-}
+	if(preg_match("/^uptime/", $VAL['NAME'])) {
+		if(!array_key_exists("uptime", $ds_name)) {
+			$ds_name["uptime"] = "Uptime";
+			$opt["uptime"] = "--vertical-label days --lower-limit 0 --rigid";
+			$def["uptime"] = "";
+		}
+		$def["uptime"] .= rrd::def($VAL['NAME'], $VAL['RRDFILE'], $VAL["DS"], "MAX");
+		$def["uptime"] .= rrd::cdef('days', "uptime,86400,/");
+		$def["uptime"] .= rrd::area('days', '#80f000', "Uptime (days)");
+		$def["uptime"] .= rrd::line1('days', '#408000');
+		$def["uptime"] .= rrd::gprint('days', array("LAST", "MAX"), "%7.2lf days");
+		if ($VAL['WARN'] != "" && is_numeric($VAL['WARN']) ){
+			$warning = $VAL['WARN'] / 86400;
+			$def["uptime"] .= rrd::hrule($warning, '#FFFF00', sprintf('Warning %s days', $warning));
+		}
+		if ($VAL['CRIT'] != "" && is_numeric($VAL['CRIT']) ){
+			$critical = $VAL['CRIT'] / 86400;
+			$def["uptime"] .= rrd::hrule($critical, '#FF0000', sprintf('Critical %s days', $critical));
+		}
+	}}
 
 ?>
