@@ -152,7 +152,7 @@ class Alert(object):
 
 
 class PerfMeasure(object):
-	def __init__(self, label, uom="", warn=None, crit=None, minval=None, maxval=None):
+	def __init__(self, label, uom="", warn=None, crit=None, minval=None, maxval=None, msg=None):
 		"""
 		@type label: str
 		@type uom: str
@@ -162,6 +162,8 @@ class PerfMeasure(object):
 		@param crit: see PerfRange.fromany
 		@type minval: int or float or decimal.Decimal or None
 		@type maxval: int or float or decimal.Decimal or None
+		@param msg: Optional human readable output
+
 		"""
 		self.label = label
 		self.uom = uom
@@ -169,6 +171,7 @@ class PerfMeasure(object):
 		self.crit = PerfRange.fromany(crit)
 		self.minval = minval
 		self.maxval = maxval
+		self.msg = msg
 
 	def with_value(self, value):
 		"""Create a PerfMetric from this measure and a value."""
@@ -177,7 +180,7 @@ class PerfMeasure(object):
 
 class PerfMetric(PerfMeasure):
 	"""A PerfMetric is a measured value in the context of a PerfMeasure."""
-	def __init__(self, label, value, uom="", warn=None, crit=None, minval=None, maxval=None):
+	def __init__(self, label, value, uom="", warn=None, crit=None, minval=None, maxval=None, msg=None):
 		"""
 		@type label: str or PerfMeasure
 		@param label: if this is a PerfMeasure, uom, warn, crit, minval and
@@ -191,6 +194,7 @@ class PerfMetric(PerfMeasure):
 		@param crit: see PerfRange.fromany
 		@type minval: int or float or decimal.Decimal or None
 		@type maxval: int or float or decimal.Decimal or None
+		@param msg: Optional human readable output
 		"""
 		if isinstance(label, PerfMeasure):
 			uom = label.uom
@@ -199,7 +203,7 @@ class PerfMetric(PerfMeasure):
 			minval = label.minval
 			maxval = label.maxval
 			label = label.label
-		PerfMeasure.__init__(self, label, uom, warn, crit, minval, maxval)
+		PerfMeasure.__init__(self, label, uom, warn, crit, minval, maxval, msg)
 		self.value = value
 
 	def state(self):
@@ -216,6 +220,9 @@ class PerfMetric(PerfMeasure):
 		"""
 		@rtype: Alert
 		"""
+		if self.msg:
+			return Alert(self.state(), self.msg)
+
 		return Alert(self.state(), "%s=%s%s" % (self.label, self.value, self.uom))
 
 	def __str__(self):

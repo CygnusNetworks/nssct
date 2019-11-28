@@ -205,12 +205,13 @@ def brocade_uptime_plugin(controller, collector):
 	if match:
 		switch_type = match.groupdict()['type']
 		if switch_type.startswith('ICX6430'):
-			warn = 95040000  # 1100 days
-			crit = 103680000  # 1200 days
+			warn = 1100 * 86400
+			crit = 1200 * 86400
 
 	uptime = yield controller.engine.get(snmpEngineTime)
+	uptime_days = round(float(uptime)/86400, 2)
 
-	collector.add_metric(report.PerfMetric("uptime", int(uptime), uom="s", warn=warn, crit=crit))
+	collector.add_metric(report.PerfMetric("uptime", uptime, uom="s", warn=warn, crit=crit, msg="uptime=%4.2f days" % uptime_days))
 
 
 snStackingGlobalTopology = brcdIp + (1, 1, 3, 31, 1, 5, 0)
