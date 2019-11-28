@@ -34,6 +34,6 @@ Reporting issues
 If your device does not work with nssct, please create a machine readable dump.
 Use the following parameters to do that:
 
-    snmpwalk -Onx --hexOutputLength=1024 ...
+    snmpwalk -Onx -Ih --hexOutputLength=1024 ...
     
 
