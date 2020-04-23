@@ -1,5 +1,6 @@
 # -*- encoding: utf-8 -*-
 
+import distutils.version
 import logging
 import re
 
@@ -13,6 +14,17 @@ logger = logging.getLogger(__name__)
 all_oids = set()
 
 brcdIp = (1, 3, 6, 1, 4, 1, 1991)
+
+MIN_VERSIONS = {
+	'FWS-X424': '05.1.00',
+	'FWS-X448': '05.1.00',
+	'FWS-648G': '07.2.02',
+	'FWS-624G': '07.2.02',
+	'ICX6430-24': '08.0.20',
+	'ICX6430-48': '08.0.20',
+	'ICX7150-48': '08.0.70',
+}
+SWITCH_TYPE_REGEX = r"^(Foundry Networks, Inc\..|Brocade Communications Systems, Inc\..|Ruckus Wireless, Inc\. (Stacking System )?)(?P<type>.*),.*"
 
 snChasActualTemperature = brcdIp + (1, 1, 1, 1, 18, 0)
 snChasWarningTemperature = brcdIp + (1, 1, 1, 1, 19, 0)
@@ -200,7 +212,7 @@ def brocade_uptime_plugin(controller, collector):
 	crit = None
 
 	descr = yield controller.engine.get(sysDescr)
-	match = re.match(r"^(Foundry Networks, Inc\..|Brocade Communications Systems, Inc\..|Ruckus Wireless, Inc\. (Stacking System )?)(?P<type>.*),.*", str(descr))
+	match = re.match(SWITCH_TYPE_REGEX, str(descr))
 
 	if match:
 		switch_type = match.groupdict()['type']
@@ -212,6 +224,27 @@ def brocade_uptime_plugin(controller, collector):
 	uptime_days = round(float(uptime)/86400, 2)
 
 	collector.add_metric(report.PerfMetric("uptime", uptime, uom="s", warn=warn, crit=crit, msg="uptime=%4.2f days" % uptime_days))
+
+
+snAgImgVer = brcdIp + (1, 1, 2, 1, 11, 0)
+all_oids.add(snAgImgVer)
+
+@future.coroutine
+def brocade_version_plugin(controller, collector):
+	img_ver = yield controller.engine.get(snAgImgVer)
+	descr = yield controller.engine.get(sysDescr)
+
+	img_ver = str(img_ver)
+	match = re.match(SWITCH_TYPE_REGEX, str(descr))
+	if match:
+		switch_type = match.groupdict()['type']
+		if switch_type in MIN_VERSIONS:
+			if distutils.version.LooseVersion(img_ver) < distutils.version.LooseVersion(MIN_VERSIONS[switch_type]):
+				alert = report.Alert(report.WARNING, "image version %s is too old - require version %s" % (img_ver, MIN_VERSIONS[switch_type]))
+				collector.add_alert(alert)
+				return
+	alert = report.Alert(report.OK, "image version is %s" % img_ver)
+	collector.add_alert(alert)
 
 
 snStackingGlobalTopology = brcdIp + (1, 1, 3, 31, 1, 5, 0)
@@ -356,6 +389,7 @@ def brocade_detect(controller, collector):
 	controller.start_plugin(collector, brocade_mem_usage_plugin)
 	controller.start_plugin(collector, brocade_stack_plugin)
 	controller.start_plugin(collector, brocade_uptime_plugin)
+	controller.start_plugin(collector, brocade_version_plugin)
 	oid = (yield controller.engine.get(plugins.sysObjectID))
 	if not plugins.oid_startswith(oid, snBigIronRXFamily):
 		controller.start_plugin(collector, brocade_temperature_plugin)
