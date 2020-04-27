@@ -227,14 +227,22 @@ def brocade_uptime_plugin(controller, collector):
 
 
 snAgImgVer = brcdIp + (1, 1, 2, 1, 11, 0)
+snAgFlashImgVer = brcdIp + (1, 1, 2, 1, 12, 0)
 all_oids.add(snAgImgVer)
 
 @future.coroutine
 def brocade_version_plugin(controller, collector):
+	alert = None
 	img_ver = yield controller.engine.get(snAgImgVer)
+	flash_img_ver = yield controller.engine.get(snAgImgVer)
 	descr = yield controller.engine.get(sysDescr)
-
 	img_ver = str(img_ver)
+	flash_img_ver = str(flash_img_ver)
+
+	if img_ver != flash_img_ver:
+		alert = report.Alert(report.WARNING, "running image version %s is not primary flash version %s" % (img_ver, flash_img_ver))
+		collector.add_alert(alert)
+
 	match = re.match(SWITCH_TYPE_REGEX, str(descr))
 	if match:
 		switch_type = match.groupdict()['type']
@@ -242,9 +250,10 @@ def brocade_version_plugin(controller, collector):
 			if distutils.version.LooseVersion(img_ver) < distutils.version.LooseVersion(MIN_VERSIONS[switch_type]):
 				alert = report.Alert(report.WARNING, "image version %s is too old - require version %s" % (img_ver, MIN_VERSIONS[switch_type]))
 				collector.add_alert(alert)
-				return
-	alert = report.Alert(report.OK, "image version is %s" % img_ver)
-	collector.add_alert(alert)
+
+	if alert is None:
+		alert = report.Alert(report.OK, "image version is %s" % img_ver)
+		collector.add_alert(alert)
 
 
 snStackingGlobalTopology = brcdIp + (1, 1, 3, 31, 1, 5, 0)
