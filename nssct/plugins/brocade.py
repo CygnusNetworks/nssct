@@ -22,7 +22,7 @@ MIN_VERSIONS = {
 	'FWS-624G': '07.2.02',
 	'ICX6430-24': '08.0.20',
 	'ICX6430-48': '08.0.20',
-	'ICX7150-48': '08.0.70',
+	'ICX7150-48': '08.0.92b',
 }
 SWITCH_TYPE_REGEX = r"^(Foundry Networks, Inc\..|Brocade Communications Systems, Inc\..|Ruckus Wireless, Inc\. (Stacking System )?)(?P<type>.*),.*"
 

@@ -1,3 +1,9 @@
+nssct (0.15) buster; urgency=low
+
+  * Update minimum software version for ICX7150
+
+ -- Peter Adam <debian@cygnusnetworks.de>  Fri, 29 May 2020 08:29:49 +0200
+
 nssct (0.14) buster; urgency=low
 
   * Add minimum software version check
