@@ -155,11 +155,12 @@ def brocade_stack_psu_table_plugin(controller, collector):
 	while (yield fut):
 		oid, value, fut = fut.result()
 		value = int(value)
-		index = "_".join(map(str, oid[len(snChasPwrSupply2OperStatus):]))
+		index_tuple = oid[len(snChasPwrSupply2OperStatus):]
+		index = "_".join(map(str, index_tuple))
 		if value == 2: # normal
 			alert = report.Alert(report.OK, "stack psu %s is ok" % index)
 		elif value == 3: # failure
-			msg = str((yield controller.engine.get(snChasPwrSupply2Description + (index,))))
+			msg = str((yield controller.engine.get(snChasPwrSupply2Description + index_tuple)))
 			logger.debug("failed stack psu %s described as %r", index, msg)
 			if msg.rstrip().endswith(" not present"):
 				alert = report.Alert(report.OK, "stack psu %s is not present" % index)

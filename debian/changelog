@@ -1,3 +1,9 @@
+nssct (0.16) buster; urgency=low
+
+  * Fix oid for stack psu description
+
+ -- Peter Adam <debian@cygnusnetworks.de>  Wed, 14 Oct 2020 13:46:08 +0200
+
 nssct (0.15) buster; urgency=low
 
   * Update minimum software version for ICX7150
