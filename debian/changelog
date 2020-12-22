@@ -1,3 +1,9 @@
+nssct (0.17) buster; urgency=low
+
+  * Add DHCP snooping check for userport switches (3rd IP octet between 20 and 60)
+
+ -- Peter Adam <debian@cygnusnetworks.de>  Fri, 15 Jan 2021 10:35:31 +0100
+
 nssct (0.16) buster; urgency=low
 
   * Fix oid for stack psu description

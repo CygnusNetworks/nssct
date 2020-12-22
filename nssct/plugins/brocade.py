@@ -4,6 +4,7 @@ import distutils.version
 import logging
 import re
 
+from ..backend import network as networkbackend
 from .. import engine
 from .. import future
 from .. import plugins
@@ -26,13 +27,35 @@ MIN_VERSIONS = {
 }
 SWITCH_TYPE_REGEX = r"^(Foundry Networks, Inc\..|Brocade Communications Systems, Inc\..|Ruckus Wireless, Inc\. (Stacking System )?)(?P<type>.*),.*"
 
+
+def brcd_temp(value):
+	return plugins.as_decimal(value, "0.5")
+
+
+def get_third_octet(controller):
+	if isinstance(controller.engine, engine.SimpleEngine):
+		backend = controller.engine.backend
+	elif isinstance(controller.engine, engine.CachingEngine):
+		backend = controller.engine.engine.backend
+	else:
+		backend = None
+	if isinstance(backend, networkbackend.NetworkBackend):
+		ip = backend.agent.transportAddr[0]
+		octets = ip.split('.')
+		assert len(octets) == 4
+		return int(octets[2])
+
+	return -1
+
+
+def userport_switch(controller):
+	return 20 <= get_third_octet(controller) < 60
+
+
 snChasActualTemperature = brcdIp + (1, 1, 1, 1, 18, 0)
 snChasWarningTemperature = brcdIp + (1, 1, 1, 1, 19, 0)
 snChasShutdownTemperature = brcdIp + (1, 1, 1, 1, 20, 0)
 all_oids.update((snChasActualTemperature, snChasWarningTemperature, snChasShutdownTemperature))
-
-def brcd_temp(value):
-	return plugins.as_decimal(value, "0.5")
 
 @future.coroutine
 def brocade_temperature_plugin(controller, collector):
@@ -385,6 +408,36 @@ def brocade_stack_plugin(controller, collector):
 
 	collector.add_alert(alert)
 
+
+snSWACLPerPortPerVlanMode = brcdIp + (1, 1, 3, 1, 46, 0)
+fdryDhcpSnoopVlanDhcpSnoopEnable = brcdIp + (1, 1, 3, 36, 2, 1, 1, 2)
+all_oids.update((snSWACLPerPortPerVlanMode, fdryDhcpSnoopVlanDhcpSnoopEnable))
+
+@future.coroutine
+def brocade_dhcp_snooping_plugin(controller, collector):
+	try:
+		swACLCfg = (yield controller.engine.get(snSWACLPerPortPerVlanMode))
+		if swACLCfg == 0:
+			alert = report.Alert(report.CRITICAL, "acl-per-port-per-vlan not enabled")
+		else:
+			alert = report.Alert(report.OK, "acl-per-port-per-vlan enabled")
+		collector.add_alert(alert)
+	except (engine.NoSuchObjectError, engine.EndOfMibError):
+		# acl-per-port-per-vlan status cannot be queried on older firmware versions
+		pass
+
+	try:
+		uservlan = get_third_octet(controller)
+		dhcpSnoopingEnable = (yield controller.engine.get(fdryDhcpSnoopVlanDhcpSnoopEnable + (uservlan, )))
+		if dhcpSnoopingEnable == 1:
+			alert = report.Alert(report.OK, "DHCP snooping enabled on user vlan %d" % uservlan)
+		else:
+			alert = report.Alert(report.CRITICAL, "DHCP snooping not enabled on vlan %d" % uservlan)
+		collector.add_alert(alert)
+	except (engine.NoSuchObjectError, engine.EndOfMibError):
+		# acl-per-port-per-vlan status cannot be queried on FWSX devices
+		pass
+
 snBigIronRXFamily = brcdIp + (1, 3, 40)
 
 @future.coroutine
@@ -400,6 +453,8 @@ def brocade_detect(controller, collector):
 	controller.start_plugin(collector, brocade_stack_plugin)
 	controller.start_plugin(collector, brocade_uptime_plugin)
 	controller.start_plugin(collector, brocade_version_plugin)
+	if userport_switch(controller):
+		controller.start_plugin(collector, brocade_dhcp_snooping_plugin)
 	oid = (yield controller.engine.get(plugins.sysObjectID))
 	if not plugins.oid_startswith(oid, snBigIronRXFamily):
 		controller.start_plugin(collector, brocade_temperature_plugin)
