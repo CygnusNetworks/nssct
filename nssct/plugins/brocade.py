@@ -48,8 +48,21 @@ def get_third_octet(controller):
 	return -1
 
 
-def userport_switch(controller):
-	return 20 <= get_third_octet(controller) < 60
+snVLanByPortMemberTagMode = brcdIp + (1, 1, 3, 2, 6, 1, 4)
+
+@future.coroutine
+def has_userports(controller):
+	vlan_id = get_third_octet(controller)
+	untagged = False
+	if 20 <= vlan_id < 60:
+		# Switch is in user VLANs range, check if untagged userports configured
+		fut = plugins.snmpwalk(controller, snVLanByPortMemberTagMode + (vlan_id, ))
+		while (yield fut):
+			oid, value, fut = fut.result()
+			if value == 2:
+				untagged = True
+				break
+	future.return_(untagged)
 
 
 snChasActualTemperature = brcdIp + (1, 1, 1, 1, 18, 0)
@@ -453,7 +466,9 @@ def brocade_detect(controller, collector):
 	controller.start_plugin(collector, brocade_stack_plugin)
 	controller.start_plugin(collector, brocade_uptime_plugin)
 	controller.start_plugin(collector, brocade_version_plugin)
-	if userport_switch(controller):
+
+	userports = yield has_userports(controller)
+	if userports:
 		controller.start_plugin(collector, brocade_dhcp_snooping_plugin)
 	oid = (yield controller.engine.get(plugins.sysObjectID))
 	if not plugins.oid_startswith(oid, snBigIronRXFamily):
