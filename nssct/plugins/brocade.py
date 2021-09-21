@@ -25,6 +25,7 @@ MIN_VERSIONS = {
 	'ICX6430-48': '08.0.20',
 	'ICX7150-48': '08.0.92b',
 }
+UPTIME_FIX_MIN_VERSION = '08.0.30p'
 SWITCH_TYPE_REGEX = r"^(Foundry Networks, Inc\..|Brocade Communications Systems, Inc\..|Ruckus Wireless, Inc\. (Stacking System )?)(?P<type>.*),.*"
 
 
@@ -241,7 +242,8 @@ def brocade_mem_usage_plugin(controller, collector):
 
 sysDescr = (1, 3, 6, 1, 2, 1, 1, 1, 0)
 snmpEngineTime = (1, 3, 6, 1, 6, 3, 10, 2, 1, 3, 0)
-all_oids.add((sysDescr, snmpEngineTime))
+snAgImgVer = brcdIp + (1, 1, 2, 1, 11, 0)
+all_oids.add((sysDescr, snmpEngineTime, snAgImgVer))
 
 @future.coroutine
 def brocade_uptime_plugin(controller, collector):
@@ -249,13 +251,15 @@ def brocade_uptime_plugin(controller, collector):
 	crit = None
 
 	descr = yield controller.engine.get(sysDescr)
+	img_ver = yield controller.engine.get(snAgImgVer)
 	match = re.match(SWITCH_TYPE_REGEX, str(descr))
 
 	if match:
 		switch_type = match.groupdict()['type']
-		if switch_type.startswith('ICX6430'):
-			warn = 1100 * 86400
-			crit = 1200 * 86400
+		if switch_type.startswith('ICX6430') or switch_type.startswith('ICX7'):
+			if distutils.version.LooseVersion(str(img_ver)) < distutils.version.LooseVersion(UPTIME_FIX_MIN_VERSION):
+				warn = 1100 * 86400
+				crit = 1200 * 86400
 
 	uptime = yield controller.engine.get(snmpEngineTime)
 	uptime_days = round(float(uptime)/86400, 2)

@@ -1,3 +1,9 @@
+nssct (0.18) buster; urgency=low
+
+  * Add ICX7xxx to uptime check, if version before 08.0.30p
+
+ -- Peter Adam <debian@cygnusnetworks.de>  Tue, 21 Sep 2021 14:57:40 +0200
+
 nssct (0.17) buster; urgency=low
 
   * Add DHCP snooping check for userport switches (3rd IP octet between 20 and 60)
